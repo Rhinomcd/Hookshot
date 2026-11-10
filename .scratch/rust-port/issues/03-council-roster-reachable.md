@@ -1,7 +1,7 @@
 # Get all four council members reachable
 
 Type: task
-Status: open
+Status: claimed
 Blocked by: none
 
 ## Question
