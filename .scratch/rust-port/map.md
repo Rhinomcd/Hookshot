@@ -14,10 +14,11 @@ rest, and the spec is ready to hand to an executor.
   upstream and carries the drift cost (see the fork sync ticket).
 - **Strategy:** strangler through the existing C ABI seams. One component at a time becomes a Rust crate behind a plain-C
   interface. The C/C++ version stays as the parity oracle until it is deleted, and the game runs at every step.
-- **Order:** `gpu/vk` first (37K first-party lines). It ships as `hookshot_vk.dll`/`.so`, CI builds it on its own
-  (`RX_VK_ONLY=1`), and the exe loads it by `mkwvk_init` with a version check (`MKWVK_API_VERSION`,
-  `gpu/vk/vk_api.h:18`). A Rust renderer therefore drops in beside an installed game without rebuilding the 1.4 GB of
-  lifted C. `host/` comes second (21K lines). It links into the exe that each user builds, so its Rust part has to ship
+- **Order:** `gpu/vk` first (37K first-party lines). It ships as `hookshot_vk.dll`/`.so`, and the exe loads it by
+  `mkwvk_init` with a version check (`MKWVK_API_VERSION`, `gpu/vk/vk_api.h:18`). A Rust renderer therefore drops in
+  beside an installed game without rebuilding the 1.4 GB of lifted C. Linux players get the renderer prebuilt in the
+  AppImage. Windows players compile it on their own PC (`.github/workflows/windows-builder.yml:5`), so a Rust renderer
+  must reach them prebuilt (ticket 10). `host/` comes second (21K lines). It links into the exe that each user builds, so its Rust part has to ship
   as a prebuilt staticlib.
 - **Pilot gate:** the pilot passes when (1) its output matches the C++ byte for byte on the eval corpus, (2) the straight
   port, before any hill-climb, is within measured noise of the C++ baseline, and (3) CI builds it for Windows and Linux
@@ -67,6 +68,8 @@ rest, and the spec is ready to hand to an executor.
 
 <!-- one line per closed ticket: [title](issues/NN-slug.md): gist -->
 
+- [Rust toolchain for the renderer's two targets](issues/01-rust-toolchain-for-the-renderer.md): gnullvm + linux-gnu `cdylib`, today's link recipe kept, `panic=abort`, C++ exceptions stop in C++ wrappers, both exports kept at ABI 12.
+
 ## Not yet specified
 
 - **Renderer port order after the pilot.** Candidate units are replay and draw state (13K lines), memory and transfer
@@ -81,7 +84,7 @@ rest, and the spec is ready to hand to an executor.
   - `recomp_sj_*` setjmp/longjmp crossing Rust frames.
   - Guest-memory writes that must set `A64_MARK`.
   - Tier B for the host stage, which needs a full lifted-C build on Ryan's PC (25 to 45 minutes).
-- **Release plumbing:** the changes to `windows-builder.yml`, `linux-appimage.yml` and `release.yml` once Rust ships.
+- **Release plumbing,** apart from Windows delivery (ticket 10): the changes to `windows-builder.yml`, `linux-appimage.yml` and `release.yml` once Rust ships.
 - **The gate's verdict and what follows a failed pilot:** stop, re-scope, or port only the parts that measured well.
 
 ## Out of scope
