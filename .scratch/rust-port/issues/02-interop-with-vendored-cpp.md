@@ -1,7 +1,7 @@
 # Interop between a Rust renderer and the vendored C/C++
 
 Type: research
-Status: open
+Status: resolved
 Blocked by: none
 Research: branch `research/vendored-interop` on Rhinomcd/Hookshot, `.scratch/rust-port/research/02-interop-with-vendored-cpp.md`
 
@@ -23,3 +23,27 @@ crate? What does each choice cost?
 For each, report the binding approach, how mature it is, and whether its behavior can stay byte-identical to today's.
 
 Primary sources: each crate's docs and repo, the cxx/autocxx books, and the repo's call sites.
+
+## Answer
+
+Keep every vendored library native and put the seam around whole renderer operations, not around each C++ method.
+Findings: branch `research/vendored-interop` (fbad491), `.scratch/rust-port/research/02-interop-with-vendored-cpp.md`.
+
+| Library | Binding | Why |
+| --- | --- | --- |
+| Eden + Sirit | A hand-written C facade over today's translation glue. It returns an opaque owner, borrowed SPIR-V words and flat reflection records. | `Shader::Info` holds vectors, maps and bitsets, so `repr(C)` cannot mirror it. Today's code relies on Eden's `Env` callbacks and the shader cache codec, which keep those in C++. `autocxx` is unmaintained. `cxx` is the runner-up. |
+| Vulkan | `ash`, built from the existing resolver with `Entry::from_static_fn`. | Keeps today's loader search. Ash 0.38 covers Vulkan 1.3.281 headers, but the repo pins 1.4.345. |
+| VMA | C wrappers over the one existing allocator. | `vk-mem` would create a second allocator and split pools and budgets. `gpu-allocator` changes where allocations land. |
+| ImGui | Keep `vk_menu.cpp`, `vk_ui.h` and `vk_imgui.cpp` in C++ through the early stages, behind frame and menu operations. | Every Rust wrapper pins a different ImGui version than the vendored 1.92.9b. |
+| FidelityFX | No runtime binding. The pass recorder stays C++ until ported; a port reuses the same checked-in SPIR-V. | It is shaders only. |
+| NGX | A C facade over today's integration and its stubs. | — |
+| zstd | Declare the eight C decoder functions in Rust. | — |
+
+**Gates for the pilot spec:**
+
+- One native owner each for the device, the allocator, the ImGui context and NGX. Rust borrows them.
+- If the pilot calls Vulkan, inventory every symbol it uses against ash 0.38.
+- Call fixed-array output queries through raw function pointers with zeroed structs (ash issue #920).
+- Keep the `work_epoch` increments from `vk_work.h`, or a later barrier gets dropped.
+- Ash fills missing functions with stubs that panic instead of null pointers, so keep the capability guards.
+- Shader-cache files will not stay byte-identical if Rust replaces `Program`. Keep the cache codec in C++.

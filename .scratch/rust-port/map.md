@@ -69,14 +69,13 @@ rest, and the spec is ready to hand to an executor.
 <!-- one line per closed ticket: [title](issues/NN-slug.md): gist -->
 
 - [Rust toolchain for the renderer's two targets](issues/01-rust-toolchain-for-the-renderer.md): gnullvm + linux-gnu `cdylib`, today's link recipe kept, `panic=abort`, C++ exceptions stop in C++ wrappers, both exports kept at ABI 12.
+- [Interop between a Rust renderer and the vendored C/C++](issues/02-interop-with-vendored-cpp.md): every vendored library stays native behind whole-operation C facades (Eden, VMA, NGX, ImGui menu), plus `ash` built from the existing Vulkan resolver; one native owner per device, allocator and context.
 
 ## Not yet specified
 
 - **Renderer port order after the pilot.** Candidate units are replay and draw state (13K lines), memory and transfer
   (4.2K), textures and formats (4.3K), the shader glue to Eden (3.2K), DLSS, FSR3 and frame generation (5.5K), the
   ImGui menu (4.1K) and diagnostics (0.9K). The order hangs on the pilot's result and on the interop research.
-- **`MkwVkHost`/`MkwVkRenderer` under a strangler.** Whether the Rust renderer keeps `vk_api.h` unchanged as the outer
-  seam, and how Rust and C++ halves share one `VkDevice` while the renderer is partly ported.
 - **Host stage.** This covers:
   - Shipping a prebuilt Rust staticlib into the user-PC link (llvm-mingw + lld, `-static`).
   - The HLE ABI: `imp_*` symbols bound by name by the lifter, and the `Ctx` struct that `nx2/rtgen.py` patches by text
